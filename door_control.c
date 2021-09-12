@@ -41,6 +41,11 @@
 #define DOOR_MIN DOOR_THRESHOLD
 #define DOOR_MAX 978 - DOOR_THRESHOLD
 
+#define DOOR_MAX_ADDRESS 0
+#define DOOR_MIN_ADDRESS sizeof(int16_t)
+
+#define MAX_DOOR_VALUE 0xFFFF
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -59,6 +64,8 @@ GarageDoor door_control_initialize()
         .result = NONE,
         .current_position = analogRead(POTENTIOMETER_PIN),
         .desired_position = analogRead(POTENTIOMETER_PIN),
+        .position_max = 0,
+        .position_min = 0,
         .mean_position_delta = 0,
         .relay_output = 0,
         .time_stamp = 0,
@@ -67,6 +74,9 @@ GarageDoor door_control_initialize()
         .stablize_count = 0,
         .hold_transition = 0
     };
+    
+    EEPROM.get( DOOR_MAX_ADDRESS, garage_door.position_max );
+    EEPROM.get( DOOR_MIN_ADDRESS, garage_door.position_min );
 
     return garage_door;
 }
@@ -75,11 +85,52 @@ GarageDoor door_control_initialize()
  * Sets the targeted position for the garage door.
  *
  * @param garage_door a pointer to the garage door control struct
- * @param position 0-1024 value for the position of the garage door
+ * @param position 0-100 value for the position of the garage door
  */
-void door_control_set_position(GarageDoor *garage_door, int16_t position)
+void door_control_set_position(GarageDoor *garage_door, int8_t position)
 {
-   garage_door->desired_position = position;
+   garage_door->desired_position = map(position, 0, 100, DOOR_MIN, DOOR_MAX);
+   garage_door->desired_state = ACTIVE;
+   garage_door->result = NONE;
+}
+
+/**
+ * Sets the targeted position for the garage door.
+ *
+ * @param garage_door a pointer to the garage door control struct
+ * @param position 0-100 value for the position of the garage door
+ */
+void door_control_calibrate_min(GarageDoor *garage_door)
+{
+   garage_door->position_min = MAX_DOOR_VALUE;
+   garage_door->desired_position = 0;
+   garage_door->desired_state = ACTIVE;
+   garage_door->result = NONE;
+}
+
+/**
+ * Sets the targeted position for the garage door.
+ *
+ * @param garage_door a pointer to the garage door control struct
+ * @param position 0-100 value for the position of the garage door
+ */
+void door_control_calibrate_max(GarageDoor *garage_door)
+{
+   garage_door->position_max = 0;
+   garage_door->desired_position = MAX_DOOR_VALUE - DOOR_THRESHOLD;
+   garage_door->desired_state = ACTIVE;
+   garage_door->result = NONE;
+}
+
+/**
+ * Sets the targeted position for the garage door.
+ *
+ * @param garage_door a pointer to the garage door control struct
+ * @param position 0-100 value for the position of the garage door
+ */
+void door_control_set_position(GarageDoor *garage_door, int8_t position)
+{
+   garage_door->desired_position = map(position, 0, 100, DOOR_MIN, DOOR_MAX);
    garage_door->desired_state = ACTIVE;
    garage_door->result = NONE;
 }

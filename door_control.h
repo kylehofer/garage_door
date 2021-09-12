@@ -49,6 +49,8 @@ typedef struct _GarageDoor
     enum door_result result;
     int16_t current_position;
     int16_t desired_position;
+    int16_t position_max;
+    int16_t position_min;
     int8_t mean_position_delta;
     uint8_t relay_output;
     unsigned long time_stamp;

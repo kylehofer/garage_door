@@ -23,6 +23,7 @@
  * A potentiometer is used to read the position of the door.
  */
 
+#include <EEPROM.h>
 #include "door_control.h"
 #include <DHT.h>
 
@@ -30,7 +31,13 @@
 #define DHTTYPE DHT22
 #define MOTION_PIN 3
 
-// DHT dht(DHTPIN, DHTTYPE);
+#define POLL_COMMAND 0b10000000
+#define DOOR_POSITION_COMMAND 0b10000001
+#define CALIBRATE_OPEN 0b10000010
+#define CALIBRATE_CLOSED 0b10000011
+
+
+DHT dht(DHTPIN, DHTTYPE);
 
 void setup()
 {  
@@ -38,22 +45,57 @@ void setup()
   Serial.begin(115200);
 }
 
+void process_door_command(GarageDoor *garage_door)
+{
+  uint8_t data;
+  unsigned long timeout = millis() + 500;
+  while (Serial.available() == 0 && millis() > timeout);
+
+  if (Serial.available()) {
+    int8_t data;
+    data = Serial.read();
+    if (data < 0 || data > 100) {
+      // Door command is outside of range, process as command;
+      process_command(data);
+    } else {
+      door_control_set_position(garage_door, data);
+    }
+  }
+}
+
+void process_command(GarageDoor *garage_door, uint8_t data)
+{
+    switch (data)
+    {
+    case POLL_COMMAND:
+      /* code */
+      break;
+    case DOOR_POSITION_COMMAND:
+      process_door_command(garage_door);
+      break;
+    case CALIBRATE_OPEN:
+      /* code */
+      break;
+    case CALIBRATE_CLOSED:
+      /* code */
+      break;
+    default:
+      break;
+    }
+  }
+}
+
 void loop()
 {
   
   GarageDoor garage_door = door_control_initialize();
+  GarageDoor *garage_door_ptr = &garage_door;
   
   while(true)
   {
-    door_control_execute(&garage_door);
-    if (Serial.available() > 0) {
-      uint8_t data;
-      char buffer[24];
-      
-      while (Serial.available() > 0)
-      {
-        data = Serial.read();
-      }
+    door_control_execute(garage_door_ptr);
+    if (Serial.available() > 0) {    
+      while (Serial.available() > 0) process_command(garage_door_ptr, Serial.read());
     }
   }
 }
