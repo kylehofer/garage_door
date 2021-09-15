@@ -18,14 +18,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-/*
- * This file is for controlling my garage door. This is done by closing a relay to activate the door.
- * A potentiometer is used to read the position of the door.
- */
 #ifndef DOORCONTROL_H_
 #define DOORCONTROL_H_
 
-#include "Arduino.h"
+#include <stdint.h>
 
 enum door_state {
     ACTIVE,
@@ -41,16 +37,17 @@ enum door_result {
     FAIL
 };
 
+#define DOOR_DATA_SIZE (sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t))
 
-typedef struct _GarageDoor
+typedef struct _DoorControl
 {
     enum door_state current_state;
     enum door_state desired_state;
     enum door_result result;
     int16_t current_position;
     int16_t desired_position;
-    int16_t position_max;
     int16_t position_min;
+    int16_t position_max;
     int8_t mean_position_delta;
     uint8_t relay_output;
     unsigned long time_stamp;
@@ -58,15 +55,23 @@ typedef struct _GarageDoor
     unsigned long relay_time;
     uint8_t stablize_count;
     uint8_t hold_transition;
-} GarageDoor;
+} DoorControl;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void door_control_set_position(GarageDoor *garage_door, int16_t position);
-int door_control_execute(GarageDoor *garage_door);
-GarageDoor door_control_initialize();
+void door_control_set_position(DoorControl *door_control, uint8_t position);
+int door_control_execute(DoorControl *door_control);
+DoorControl door_control_initialize(DoorControl *door_control, int16_t min, int16_t max);
+uint16_t door_control_calibrate_min_position(DoorControl *door_control);
+uint16_t door_control_calibrate_max_position(DoorControl *door_control);
+uint8_t door_control_get(DoorControl *door_control, uint8_t *data);
+
+inline long linear_map(long value, long in_min, long in_max, long out_min, long out_max)
+{
+  return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 
 #ifdef __cplusplus
 }
