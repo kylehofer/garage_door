@@ -34,6 +34,9 @@ import atexit
 import threading
 from enum import Enum
 
+MQTT_ADDRESS = "<ENTER ADDRESS HERE>"
+MQTT_PORT = 1883
+
 logging.basicConfig(level=logging.INFO)
 
 # Logger to log things
